@@ -10,15 +10,8 @@ Codex 写完代码后，Claude 立即执行：
 
 1. **检查 exit code** — 非零则判断是重新执行还是升级
 2. **读取所有修改文件** — 用 Read 工具逐一检查
-3. **审查清单：**
-   - 安全：无硬编码密钥、无破坏性操作、无无界循环
-   - 风格：与项目惯例一致（命名、格式、注释）
-   - 逻辑：控制流正确、边界条件处理、错误处理到位
-   - 蓝图合规：实现是否匹配锁定的蓝图（L2/L3）
-4. **决策：**
-   - 小问题（格式、命名）→ Claude 直接 Edit 修正
-   - 大问题（逻辑错误）→ 调整 Codex 提示词后重新 EXECUTE
-   - 通过 → L1 级别结束；L2/L3 进入 Layer 2
+3. **审查要点：** 安全、风格、逻辑、蓝图合规（L2/L3）
+4. **决策：** 小问题直接 Edit 修正 | 大问题重新 EXECUTE | 通过进入下一层
 
 **L1 到此结束，直接进入 Phase 3 REPORT。**
 
@@ -31,10 +24,7 @@ Codex 写完代码后，Claude 立即执行：
 ### 审计命令
 
 ```bash
-# 捕获 diff
 git diff HEAD > /tmp/crossfire_review_diff.patch
-
-# 调用 Codex 审计
 codex exec --full-auto -m gpt-5.3-codex -C "<workdir>" "$(cat /tmp/crossfire_audit.txt)"
 ```
 
@@ -70,44 +60,33 @@ Review implementation against blueprint:
 ### Summary: [1-2 sentences]
 ```
 
-大 diff（>300 行）时，提示词中指示 Codex 从文件读取而非内嵌。
+大 diff（>300 行）时，指示 Codex 从文件读取而非内嵌。
 
 ---
 
 ## 修复-重审循环（L2/L3）
 
-当 Layer 2 返回 FAIL：
-
 ```
 Codex 终审 FAIL
-  │
-  ├─ Claude 读取 Codex 的 Objective Issues
-  ├─ Claude 用 Edit 工具逐一修复
-  ├─ 生成新的 git diff
-  ├─ 再次调用 Codex 终审（新会话）
-  │
+  ├─ Claude 读取 Objective Issues → Edit 修复
+  ├─ 生成新 git diff → 再次调用 Codex 终审
   ├─ PASS → Phase 3 ✅
   ├─ 轮次 < 3 → 继续循环
   └─ 轮次 = 3 → 升级给用户 🛑
 ```
 
-**最多 3 轮修复-重审。**
-
 ---
 
-## 交叉审查（L3 可选）
+## 交叉审查（L3 必选，L2 可选）
 
-Claude 修正代码后，额外调用 Codex 专门审查 Claude 的修正本身：
+Claude 修正代码后，额外调用 Codex 审查 Claude 的修正本身：
 
 ```bash
 git diff HEAD~1..HEAD > /tmp/crossfire_fixes.patch
 codex exec --full-auto -m gpt-5.3-codex -C "<workdir>" "$(cat /tmp/crossfire_crossreview.txt)"
 ```
 
-提示词要点：
-- 输入：上一次 Codex 审计的发现 + Claude 的修正 diff
-- 任务：验证每个修正是否正确解决了原始问题
-- 输出：每个修正标记为 RESOLVED / PARTIALLY_RESOLVED / NEW_ISSUE_INTRODUCED
+输出：每个修正标记为 RESOLVED / PARTIALLY_RESOLVED / NEW_ISSUE_INTRODUCED
 
 ---
 

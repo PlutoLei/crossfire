@@ -53,29 +53,15 @@
 
 ## Codex CLI 调用参考
 
-**基础格式：**
-```bash
-codex exec <权限标志> -m gpt-5.3-codex -C "<工作目录>" "<任务提示>"
-```
+Codex CLI 基础格式、权限标志、大提示词处理等详见 `codex-execute` skill。
 
-| 场景 | 权限标志 | 说明 |
+crossfire 各阶段的权限映射：
+
+| 阶段 | 权限标志 | 说明 |
 |------|---------|------|
 | Phase 0 DEBATE | `--full-auto` | 只读质询，不修改文件 |
 | Phase 1 EXECUTE | `--dangerously-bypass-approvals-and-sandbox` | 需要写入文件 |
 | Phase 2 REVIEW | `--full-auto` | 只读审计 |
-
-**大提示词处理**（避免 Windows 15KB 限制）：
-```bash
-# Claude 先将提示词写入临时文件
-# 然后：
-codex exec --full-auto -m gpt-5.3-codex -C "<dir>" "$(cat /tmp/crossfire_prompt.txt)"
-```
-
-**或指示 Codex 读取文件**（适用于大 diff）：
-```bash
-codex exec --full-auto -m gpt-5.3-codex -C "<dir>" \
-  "Read /tmp/crossfire_blueprint.md and /tmp/crossfire_diff.patch, then audit the implementation against the blueprint."
-```
 
 ---
 

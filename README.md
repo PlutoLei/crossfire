@@ -11,6 +11,7 @@
   <img alt="Claude Code" src="https://img.shields.io/badge/Claude%20Code-Opus%204.6-2B6CB0?style=flat-square" />
   <img alt="Codex CLI" src="https://img.shields.io/badge/Codex%20CLI-GPT--5.3--Codex-10A37F?style=flat-square" />
   <img alt="MIT License" src="https://img.shields.io/badge/License-MIT-black?style=flat-square" />
+  <img alt="Version" src="https://img.shields.io/badge/version-1.1.0-orange?style=flat-square" />
 </p>
 
 ## What is this?
@@ -103,6 +104,18 @@ cp crossfire/references/*.md ~/.claude/skills/crossfire/references/
 | `optimize` | Improve performance or resource usage | Measured bottleneck reductions |
 | `architect` | Design system-level changes | Architecture plan + implementation route |
 
+## Skill Delegation (v1.1)
+`crossfire` is an **orchestrator**, not a monolith. Instead of reimplementing other skills' logic (a recipe for semantic drift and maintenance nightmares), it delegates to existing Claude Code skills where possible:
+
+| Phase | Delegation | Target Skill | Why |
+| --- | --- | --- | --- |
+| Phase 0a EXPLORE | **invoke** | `planning-with-files` | Autonomous state management (task_plan.md, findings.md, progress.md) |
+| Phase 0a-0b | **reference principles** | `brainstorming` | YAGNI, multi-option comparison (can't invoke — interactive workflow conflicts with autonomous Phase 0) |
+| Phase 0b PLAN | **reference format** | `writing-plans` | Structured blueprint template (can't invoke — asks user to choose execution approach) |
+| Phase 1 EXECUTE | **reuse patterns** | `codex-execute` | Codex CLI calling conventions (doesn't invoke — blueprint injection is crossfire-unique) |
+
+Three delegation modes because not all skills play nice with autonomous pipelines. Some want to chat with the user (looking at you, `brainstorming`). We respect their boundaries while borrowing their wisdom.
+
 ## Credits
 - Repository: `PlutoLei/crossfire`
 - Collaboration model: Actor-Critic pipeline for Claude Code and Codex CLI
@@ -124,6 +137,7 @@ cp crossfire/references/*.md ~/.claude/skills/crossfire/references/
   <img alt="Claude Code" src="https://img.shields.io/badge/Claude%20Code-Opus%204.6-2B6CB0?style=flat-square" />
   <img alt="Codex CLI" src="https://img.shields.io/badge/Codex%20CLI-GPT--5.3--Codex-10A37F?style=flat-square" />
   <img alt="MIT License" src="https://img.shields.io/badge/License-MIT-black?style=flat-square" />
+  <img alt="Version" src="https://img.shields.io/badge/version-1.1.0-orange?style=flat-square" />
 </p>
 
 ## 这是个啥？
@@ -215,6 +229,18 @@ cp crossfire/references/*.md ~/.claude/skills/crossfire/references/
 | `review` | 做代码评审或安全审计 | 结构化问题清单与风险分级 |
 | `optimize` | 做性能/资源优化 | 可度量的瓶颈改进 |
 | `architect` | 规划系统级改造 | 架构方案与实施路径 |
+
+## 技能委托架构（v1.1）
+`crossfire` 是**编排器**，不是大而全的轮子工厂。与其把别人的逻辑抄一遍（然后在维护时怀疑人生），不如在合适的地方直接委托给已有技能：
+
+| 阶段 | 委托方式 | 目标 Skill | 为什么这么搞 |
+| --- | --- | --- | --- |
+| Phase 0a 探索 | **invoke 调用** | `planning-with-files` | 自主状态管理（task_plan.md、findings.md、progress.md） |
+| Phase 0a-0b 多方案 | **引用原则** | `brainstorming` | YAGNI、多方案比较（不能直接调用——它要逐段问用户，跟自主模式打架） |
+| Phase 0b 蓝图 | **引用格式** | `writing-plans` | 结构化蓝图模板（不能直接调用——它要问用户选执行方式） |
+| Phase 1 执行 | **复用模式** | `codex-execute` | Codex CLI 调用惯例（不直接调用——蓝图注入是 crossfire 独有逻辑） |
+
+三种委托模式，因为不是所有 skill 都适合在自动流水线里跑。有些非要跟用户聊天（说的就是你，`brainstorming`）。我们尊重它们的社交需求，只借鉴智慧。
 
 ## 致谢
 - 仓库：`PlutoLei/crossfire`
