@@ -1,7 +1,7 @@
 ---
 name: crossfire
 description: Claude + Codex 端到端 Actor-Critic 协作。四阶段 Pipeline：探索规划辩论 → 执行 → 多层审查 → 报告。异源模型互审消除信息茧房。
-version: 1.1.0
+version: 1.2.0
 tags: [Codex, Pipeline, Actor-Critic, Multi-Model, Crossfire]
 ---
 
@@ -21,12 +21,12 @@ Claude Code (Opus 4.6) = Actor（架构师/审查员），Codex (GPT-5.3-Codex) 
 
 crossfire 是**编排器**，复用已有 skill 的能力而非重写逻辑。
 
-| 阶段 | 委托方式 | 目标 Skill | 说明 |
-|------|---------|-----------|------|
-| Phase 0a EXPLORE | **invoke** | `planning-with-files` | 自主状态管理：创建 task_plan.md / findings.md / progress.md，2-action rule 防信息丢失 |
-| Phase 0a-0b 多方案 | **参考原则** | `brainstorming` | 参考其"提出 2-3 种方案并比较权衡"和 YAGNI 原则，但不 invoke（因其工作流要求逐段问用户，与 Phase 0 自主模式冲突） |
-| Phase 0b PLAN 蓝图 | **参考格式** | `writing-plans` | 参考其结构化蓝图模板（文件清单 + 步骤 + 验收标准），但不 invoke（因其要求用户选择执行方式，与 Phase 0 自主模式冲突） |
-| Phase 1 EXECUTE | **复用模式** | `codex-execute` | 复用其 Codex CLI 调用模式和级别路由，但不 invoke（因蓝图注入是 crossfire 独有逻辑） |
+| 阶段 | L2 委托方式 | L3 委托方式 | 目标 Skill |
+|------|-----------|-----------|-----------|
+| Phase 0a EXPLORE | **invoke** | **invoke** | `planning-with-files` — 自主状态管理（task_plan.md / findings.md / progress.md） |
+| Phase 0a-0b 多方案 | **参考原则** | **invoke** | `brainstorming` — L2 参考多方案+YAGNI 原则；L3 invoke 交互式探索，用户参与方案选择 |
+| Phase 0b PLAN 蓝图 | **参考格式** | **invoke** | `writing-plans` — L2 参考蓝图模板格式；L3 invoke 交互式规划，用户确认蓝图 |
+| Phase 1 EXECUTE | **复用模式** | **复用模式** | `codex-execute` — 复用 Codex CLI 调用模式（蓝图注入是 crossfire 独有逻辑） |
 
 **独有逻辑**（不委托，crossfire 自身实现）：
 - Phase 0c DEBATE — Codex 质询蓝图
@@ -56,10 +56,13 @@ L2/L3:  Phase 0(EXPLORE→PLAN→DEBATE→LOCK) → Phase 1(EXECUTE) → Phase 2
 
 ### Phase 0: EXPLORE → PLAN → DEBATE → LOCK（L2/L3）
 
-Claude 全自主完成，用户仅在升级时介入。首先 **invoke `planning-with-files` skill** 初始化状态管理文件。
+首先 **invoke `planning-with-files` skill** 初始化状态管理文件。
+
+- **L2（自主模式）：** Claude 全自主完成，用户仅在升级时介入。
+- **L3（半交互模式）：** invoke `brainstorming` 和 `writing-plans` 让用户参与方案选择，DEBATE/LOCK 仍自主。
 
 1. **EXPLORE** — 读取相关源文件、GitNexus 查执行流、识别可复用代码。发现即时写入 findings.md（2-action rule）
-2. **PLAN** — 参考 brainstorming 原则提出 2-3 种方案并比较，选最优方案，参考 writing-plans 格式草拟架构蓝图
+2. **PLAN** — L2: 参考 brainstorming 原则自主提出多方案 | L3: **invoke `brainstorming`** 交互式探索，再 **invoke `writing-plans`** 生成蓝图
 3. **DEBATE** — 提交蓝图给 Codex `--full-auto` xhigh 质询，最多 3 轮辩论
 4. **LOCK** — 冻结蓝图写入 task_plan.md，后续阶段不得偏离
 

@@ -1,8 +1,9 @@
 # Phase 0: EXPLORE → PLAN → DEBATE → LOCK 协议
 
-仅 L2/L3 触发。Claude 全自主完成，用户仅在升级时介入。
+仅 L2/L3 触发。**首先 invoke `planning-with-files` skill**，创建 task_plan.md / findings.md / progress.md 进行状态管理。
 
-**首先 invoke `planning-with-files` skill**，创建 task_plan.md / findings.md / progress.md 进行状态管理。
+- **L2（自主模式）：** Claude 全自主完成，用户仅在升级时介入。
+- **L3（半交互模式）：** Step 0a/0b invoke `brainstorming` 和 `writing-plans` 让用户参与方案选择，Step 0c/0d 仍自主。
 
 ---
 
@@ -21,9 +22,20 @@
 
 ---
 
+## Step 0a/0b: L3 交互路径
+
+**仅 L3 触发。** L2 跳过此段，直接执行下方的自主 Step 0b。
+
+1. **invoke `brainstorming` skill** — 交互式探索多方案，用户逐步参与选择
+2. **invoke `writing-plans` skill** — 交互式生成结构化蓝图，用户确认后进入 DEBATE
+
+invoke 完成后，将产出写入 task_plan.md，然后跳到 Step 0c DEBATE。
+
+---
+
 ## Step 0b: PLAN
 
-目标：基于探索结果，设计实现方案。
+目标：基于探索结果，设计实现方案。**（L2 自主模式，L3 已在上方完成）**
 
 **参考 `brainstorming` skill 的多方案原则：**
 - 提出 2-3 种实现方案，各附权衡分析

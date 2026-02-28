@@ -11,7 +11,7 @@
   <img alt="Claude Code" src="https://img.shields.io/badge/Claude%20Code-Opus%204.6-2B6CB0?style=flat-square" />
   <img alt="Codex CLI" src="https://img.shields.io/badge/Codex%20CLI-GPT--5.3--Codex-10A37F?style=flat-square" />
   <img alt="MIT License" src="https://img.shields.io/badge/License-MIT-black?style=flat-square" />
-  <img alt="Version" src="https://img.shields.io/badge/version-1.1.0-orange?style=flat-square" />
+  <img alt="Version" src="https://img.shields.io/badge/version-1.2.0-orange?style=flat-square" />
 </p>
 
 ## What is this?
@@ -137,7 +137,7 @@ Three delegation modes because not all skills play nice with autonomous pipeline
   <img alt="Claude Code" src="https://img.shields.io/badge/Claude%20Code-Opus%204.6-2B6CB0?style=flat-square" />
   <img alt="Codex CLI" src="https://img.shields.io/badge/Codex%20CLI-GPT--5.3--Codex-10A37F?style=flat-square" />
   <img alt="MIT License" src="https://img.shields.io/badge/License-MIT-black?style=flat-square" />
-  <img alt="Version" src="https://img.shields.io/badge/version-1.1.0-orange?style=flat-square" />
+  <img alt="Version" src="https://img.shields.io/badge/version-1.2.0-orange?style=flat-square" />
 </p>
 
 ## 这是个啥？
