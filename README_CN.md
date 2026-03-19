@@ -8,76 +8,61 @@
   一个负责搭台子，一个负责抡键盘，最后俩人互相挑刺，代码反而更稳了。
 </p>
 <p align="center">
-  <img alt="Claude Code" src="https://img.shields.io/badge/Claude%20Code-Opus%204.6-2B6CB0?style=flat-square" />
-  <img alt="Codex CLI" src="https://img.shields.io/badge/Codex%20CLI-GPT--5.3--Codex-10A37F?style=flat-square" />
+  <img alt="Version" src="https://img.shields.io/badge/version-1.8-orange?style=flat-square" />
+  <img alt="Claude" src="https://img.shields.io/badge/Claude-Opus%204.6-2B6CB0?style=flat-square" />
+  <img alt="Codex" src="https://img.shields.io/badge/Codex-GPT--5.4-10A37F?style=flat-square" />
+  <img alt="Platform" src="https://img.shields.io/badge/Platform-Windows-0078D4?style=flat-square" />
   <img alt="MIT License" src="https://img.shields.io/badge/License-MIT-black?style=flat-square" />
-  <img alt="Version" src="https://img.shields.io/badge/version-1.2.0-orange?style=flat-square" />
 </p>
 
 <p align="center">
   <a href="README.md">English</a> | <strong>中文</strong>
 </p>
 
-## 这是个啥？
-`crossfire` 是一个给 Claude Code 用的技能，把 Claude 和 Codex 这对"相声搭子"塞进同一条流水线里干活。
+## 为什么用 Crossfire？
 
-设定大概是这样的：
-- Claude（Opus 4.6）像"方案总监"：先看全局、拆问题、定架构，开会时句句都是"从长期演进看"。
-- Codex CLI（GPT-5.3-Codex）像"执行负责人+审计"：先把代码干出来，再拿放大镜把潜在坑一个个挑出来。
+把 Claude 和 Codex 关进同一条流水线会怎样？答案是：出乎意料地好用。
 
-如果你经常在"甲方要快、乙方要稳"之间来回横跳，这套流程就是把争论前置：先让AI吵明白，再让AI写明白。
+`crossfire` 是一个 Claude Code 技能，运行端到端的 **Actor-Critic 流水线**，配对两个来自不同训练分布的 AI 模型。Claude Code（Opus 4.6）扮演架构师和审查员——拿着白板的战略家。Codex CLI（GPT-5.4）扮演执行者和审计员——写码飞快，检查起来像机场安检员一样严格。
 
-灵感来源：[异源多智能体辩论](https://arxiv.org/abs/2602.03794)——不同模型互相挑刺，比同质团队更能发现盲区。
+核心洞见：异源模型互相挑刺，比同质团队更能发现盲区（[arXiv:2602.03794](https://arxiv.org/abs/2602.03794)）。Phase 0 是 AI 版的"先吵明白"，Phase 2 是"信任但要验证"。最终受益的是你的代码库。
 
-## 流水线总览
-流程是四阶段，先定蓝图，再写代码，再双重复核，最后出报告。
+## 工作原理
 
-```text
-任务输入
-  |
-  v
-+-------------------------------------------------------------+
-| Phase 0（架构阶段）                                          |
-| Claude: EXPLORE -> PLAN -> DEBATE(与Codex) -> LOCK          |
-+-------------------------------------------------------------+
-  |
-  v
-+-------------------------------------------------------------+
-| Phase 1（执行阶段）                                          |
-| Codex: 按锁定蓝图实现                                        |
-+-------------------------------------------------------------+
-  |
-  v
-+-------------------------------------------------------------+
-| Phase 2（评审阶段）                                          |
-| Claude 初审 -> Codex 终审 -> 交叉复审*                      |
-+-------------------------------------------------------------+
-  |
-  v
-+-------------------------------------------------------------+
-| Phase 3（报告阶段）                                          |
-| 结构化报告 + 自动提交                                        |
-+-------------------------------------------------------------+
+<p align="center">
+  <img src="assets/pipeline.png" alt="crossfire pipeline" width="800" />
+</p>
 
-* L3 必选交叉复审，L2 可选
-```
+流水线分四个阶段——规划、执行、审查、报告：
 
-## 级别路由
-按任务风险选级别，别拿 L1 去硬刚系统级重构。
+1. **Phase 0 — 规划**（Claude）：探索代码库 → 起草蓝图 → 与 Codex 对抗辩论 → 锁定最终方案
+2. **Phase 1 — 执行**（Codex）：严格按锁定蓝图实现，Windows 环境经过防护层预处理
+3. **Phase 2 — 审查**（双方）：Claude 初审 → 确定性检查（测试/linter） → Codex 终审 → 交叉复审
+4. **Phase 3 — 报告**：结构化报告 + 自动 git commit
 
-| 级别 | 路径 | 适用场景 | 评审强度 |
-| --- | --- | --- | --- |
-| L1 | 快速通道，跳过 Phase 0，直接 EXECUTE | 小改动、明确修复、低不确定性任务 | 基础 |
-| L2 | 全流程：Phase 0 -> 1 -> 2 -> 3 | 日常默认开发任务 | 较强 |
-| L3 | 全流程 + Phase 2 强制交叉复审 | 架构升级、高风险重构、关键发布 | 最高 |
+### 工作流分级
 
-## 前置条件
-- Claude Code `v1.0+`
-- Codex CLI `v0.98.0+`
-- 能接受两位 AI 先"辩论赛"再动手，前面多 10 分钟，后面少两天返工
+| 级别 | 流程 | 适用场景 | 审查强度 |
+|:----:|------|---------|:-------:|
+| **L1** | 跳过 Phase 0 → 直接执行 → 快速审查 | 小改动、明确修复、低不确定性任务 | 基础 |
+| **L2** | 完整四阶段流水线 | 日常默认开发任务 | 较强（3 轮上限） |
+| **L3** | 完整流水线 + 强制交叉复审 | 架构升级、高风险重构、关键发布 | 最高 |
 
-## 安装
-克隆并复制技能文件：
+文件数和行数指向不同级别时，取更高级别。
+
+## 快速开始
+
+### 前置条件
+
+- [Claude Code](https://docs.anthropic.com/en/docs/claude-code) v1.0+
+- [Codex CLI](https://github.com/openai/codex) v0.115.0+ — `npm install -g @openai/codex`
+- 在 `~/.codex/config.toml` 中配置模型：
+  ```toml
+  model = "gpt-5.4"
+  model_reasoning_effort = "xhigh"
+  ```
+
+### 安装
 
 ```bash
 git clone https://github.com/PlutoLei/crossfire.git
@@ -86,44 +71,68 @@ cp crossfire/SKILL.md ~/.claude/skills/crossfire/
 cp crossfire/references/*.md ~/.claude/skills/crossfire/references/
 ```
 
-## 用法
+### 第一个命令
 
 ```bash
-/crossfire code: 在 src/utils.py 中添加 parse_date 函数
-/crossfire bugfix: 修复 evaluate.py 的混淆矩阵颜色映射
-/crossfire L2: 重构 ingestion 模块，支持异步
-/crossfire --no-debate optimize: 加速 fetch.py 的批量请求
+/crossfire code: 在 src/utils.py 中添加 parse_date 函数，支持 ISO 8601 和中文日期格式
 ```
 
-## 模板速查
-内置七种模板，覆盖常见开发任务。
+## 模板
 
-| 模板 | 什么时候用 | 常见产出 |
-| --- | --- | --- |
-| `code` | 新功能开发、模块实现 | 按锁定蓝图完成实现 |
-| `bugfix` | 定位并修复缺陷 | 根因修复 + 回归防护 |
-| `refactor` | 在不改行为的前提下重构 | 更清晰的结构与边界 |
-| `test` | 增补或强化测试 | 关键路径与边界场景覆盖 |
-| `review` | 做代码评审或安全审计 | 结构化问题清单与风险分级 |
-| `optimize` | 做性能/资源优化 | 可度量的瓶颈改进 |
-| `architect` | 规划系统级改造 | 架构方案与实施路径 |
+内置九种模板，覆盖常见开发任务：
 
-## 技能委托架构（v1.1）
-`crossfire` 是**编排器**，不是大而全的轮子工厂。与其把别人的逻辑抄一遍（然后在维护时怀疑人生），不如在合适的地方直接委托给已有技能：
+| 模板 | 级别 | 用途 | 示例 |
+|------|:---:|------|------|
+| `code` | L1/L2 | 新功能实现 | `/crossfire code: 添加 parse_date 到 utils.py` |
+| `bugfix` | L2 | 根因修复 + 回归防护 | `/crossfire bugfix: 修复混淆矩阵颜色映射` |
+| `refactor` | L2 | 改结构不改行为 | `/crossfire refactor: 抽取去重逻辑为独立模块` |
+| `test` | L1 | 增补或强化测试 | `/crossfire test: 为 process_one_paper 添加单元测试` |
+| `review` | L1 | Codex 独立代码评审 | `/crossfire review: 审查 generate_essay_en.py` |
+| `audit` | L2 | 双源并行审核（Claude + code-reviewer agent） | `/crossfire audit: 审核 TextMamba3D 代码变更` |
+| `optimize` | L2 | 性能或资源优化 | `/crossfire optimize: 异步批量请求` |
+| `architect` | L3 | 系统级架构设计 | `/crossfire architect: 设计 figure compositor` |
+| `research` | L2 | 按研究架构实现（自动注入研究产出） | `/crossfire research: 按 architecture_proposal.md 实现` |
 
-| 阶段 | 委托方式 | 目标 Skill | 为什么这么搞 |
-| --- | --- | --- | --- |
-| Phase 0a 探索 | **invoke 调用** | `planning-with-files` | 自主状态管理（task_plan.md、findings.md、progress.md） |
-| Phase 0a-0b 多方案 | **引用原则** | `brainstorming` | YAGNI、多方案比较（不能直接调用——它要逐段问用户，跟自主模式打架） |
-| Phase 0b 蓝图 | **引用格式** | `writing-plans` | 结构化蓝图模板（不能直接调用——它要问用户选执行方式） |
-| Phase 1 执行 | **复用模式** | `codex-execute` | Codex CLI 调用惯例（不直接调用——蓝图注入是 crossfire 独有逻辑） |
+**语法：** `/crossfire <模板>: <描述>` 或 `/crossfire L2: <描述>`
 
-三种委托模式，因为不是所有 skill 都适合在自动流水线里跑。有些非要跟用户聊天（说的就是你，`brainstorming`）。我们尊重它们的社交需求，只借鉴智慧。
+**可选标志：** `--no-debate`（跳过辩论）· `--no-audit`（跳过终审）· `--inject-plan <dir>`（注入研究产出）
+
+## 配置
+
+### Codex CLI
+
+`~/.codex/config.toml` 关键配置：
+
+```toml
+model = "gpt-5.4"
+model_reasoning_effort = "xhigh"
+
+[windows]
+sandbox = "elevated"
+```
+
+### Windows 防护层
+
+Windows 环境下所有 Codex 调用必须经过预处理：
+
+| 防护项 | 规则 | 影响阶段 |
+|--------|------|:-------:|
+| 路径归一化 | 所有路径转正斜杠 | 全部 |
+| `cd` 注入 | 每个 Codex prompt 第一行固定为 `cd <归一化绝对路径>` | 全部 |
+| 蓝图内嵌 | ≤200 行直接嵌入 prompt；>200 行指示 Codex 读文件 | Phase 1 |
+| 产出完整性兜底 | 检测缺失/截断文件 → Claude 用 Write 工具补完 | Phase 1 |
+
+## 架构详情
+
+完整的流水线分解——包括 Phase 0 子步骤、多层审查、修复-重审循环和技能委托策略——请参阅[架构文档](docs/architecture.md)。
+
+<p align="center">
+  <img src="docs/architecture-detailed.png" alt="详细架构图" width="600" />
+</p>
 
 ## 致谢
-- 仓库：`PlutoLei/crossfire`
-- 协作方法：面向 Claude Code 与 Codex CLI 的 Actor-Critic 流程
-- 角色分工：Claude 负责架构与初审，Codex 负责执行与终审
-- 横幅图：由 Gemini (Imagen 4) 生成
 
-横幅图由 Gemini (Imagen 4) 生成。所有 skill 内容使用 MIT 许可证。
+- 面向 [Claude Code](https://docs.anthropic.com/en/docs/claude-code) × [Codex CLI](https://github.com/openai/codex) 的 Actor-Critic 流水线
+- 灵感来源：[异源多智能体辩论](https://arxiv.org/abs/2602.03794)
+- 横幅与图表由 [PaperBanana](https://github.com/PlutoLei/paperbanana) + Google Gemini 生成
+- MIT 许可证
