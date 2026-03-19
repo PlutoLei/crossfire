@@ -1,21 +1,19 @@
 ---
 name: crossfire
-description: Claude + Codex 端到端 Actor-Critic 协作。四阶段 Pipeline：探索规划辩论 → 执行 → 多层审查 → 报告。异源模型互审消除信息茧房。
-version: 1.2.0
-tags: [Codex, Pipeline, Actor-Critic, Multi-Model, Crossfire]
+description: Use when 需要多文件代码实现并要求异源模型（Claude + Codex）交叉审查，或架构方案需要对抗性质询验证。适用于大型编码任务的端到端协作，不适用于单文件小修改或纯数据处理。
 ---
 
 # /crossfire — Claude + Codex 交叉火力 Pipeline
 
 ## 核心理念
 
-Claude Code (Opus 4.6) = Actor（架构师/审查员），Codex (GPT-5.3-Codex) = Executor + Critic（执行者/审计员）。异源模型互审避免同源信息茧房（arXiv:2602.03794）。端到端封装从探索到报告的完整流程。
+Claude Code (Opus 4.6) = Actor（架构师/审查员），Codex (GPT-5.4) = Executor + Critic（执行者/审计员）。异源模型交叉审查减少确认偏差——不同训练分布更可能发现对方盲区（[arXiv:2602.03794](https://arxiv.org/abs/2602.03794)）。Windows 环境下所有 Codex 调用需经过路径归一化预处理（详见 templates-and-faq.md「Windows 防护层」）。
 
 | 角色 | 模型 | 职责 |
 |------|------|------|
 | 架构师 | Claude Opus 4.6 | 探索、规划、审查、修复、决策 |
-| 执行者 | Codex gpt-5.3-codex | 编码实现、文件修改 |
-| 审计员 | Codex gpt-5.3-codex `--full-auto` | 架构质询（Phase 0）、代码终审（Phase 2） |
+| 执行者 | Codex gpt-5.4 | 编码实现、文件修改 |
+| 审计员 | Codex gpt-5.4 `--full-auto` | 架构质询（Phase 0）、代码终审（Phase 2） |
 
 ## Skill 委托策略
 
@@ -26,7 +24,7 @@ crossfire 是**编排器**，复用已有 skill 的能力而非重写逻辑。
 | Phase 0a EXPLORE | **invoke** | **invoke** | `planning-with-files` — 自主状态管理（task_plan.md / findings.md / progress.md） |
 | Phase 0a-0b 多方案 | **参考原则** | **invoke** | `brainstorming` — L2 参考多方案+YAGNI 原则；L3 invoke 交互式探索，用户参与方案选择 |
 | Phase 0b PLAN 蓝图 | **参考格式** | **invoke** | `writing-plans` — L2 参考蓝图模板格式；L3 invoke 交互式规划，用户确认蓝图 |
-| Phase 1 EXECUTE | **复用模式** | **复用模式** | `codex-execute` — 复用 Codex CLI 调用模式（蓝图注入是 crossfire 独有逻辑） |
+| Phase 1 EXECUTE | **自有逻辑** | **自有逻辑** | Codex CLI 调用 + 蓝图注入 + Windows 防护层（crossfire 自身实现） |
 
 **独有逻辑**（不委托，crossfire 自身实现）：
 - Phase 0c DEBATE — Codex 质询蓝图
@@ -73,7 +71,7 @@ L2/L3:  Phase 0(EXPLORE→PLAN→DEBATE→LOCK) → Phase 1(EXECUTE) → Phase 2
 复用 `codex-execute` 的 Codex CLI 调用模式，增加蓝图注入：
 
 ```bash
-codex exec --dangerously-bypass-approvals-and-sandbox -m gpt-5.3-codex -C "<dir>" "<task + 蓝图引用>"
+codex exec --dangerously-bypass-approvals-and-sandbox -m gpt-5.4 -C "<dir>" "<task + 蓝图引用>"
 ```
 
 ### Phase 2: REVIEW
@@ -81,10 +79,13 @@ codex exec --dangerously-bypass-approvals-and-sandbox -m gpt-5.3-codex -C "<dir>
 | 层级 | 执行者 | 适用级别 |
 |------|--------|---------|
 | Layer 1 | Claude 初审 | 所有 |
+| Layer 1.5 | 确定性验证（pytest/linter） | L2/L3 |
 | Layer 2 | Codex `--full-auto` 终审（蓝图 + diff） | L2/L3 |
 | 交叉审查 | Codex 审查 Claude 的修正 | L3 必选，L2 可选 |
 
-修复-重审循环：最多 3 轮。退出：✅ Clean pass | 🟡 仅主观建议 | 🛑 3 轮上限 → 升级用户
+修复-重审循环：最多 3 轮（Layer 2 + 交叉审查共享全局预算）。退出：✅ Clean pass | 🟡 仅主观建议 | 🛑 3 轮上限 → 升级用户
+
+> **`audit` 模板**运行独立 Pipeline（Phase A-F），不走上述标准层级。详见 review-protocol.md 的 Standalone Audit Pipeline 章节。
 
 详见 [references/review-protocol.md](references/review-protocol.md)
 
@@ -102,21 +103,15 @@ codex exec --dangerously-bypass-approvals-and-sandbox -m gpt-5.3-codex -C "<dir>
 | L2 | 多文件, 需上下文 | 完整 4 步 | 单次 Codex | 多层（3 轮） | 完整报告 |
 | L3 | 架构级, 多模块 | 完整 4 步 | 多步 Codex | 多层+交叉审查 | 完整报告 |
 
+**分级判定：** 当文件数和行数指向不同级别时（如单文件 >30 行），取更高级别。
+
 ## 预设模板
 
-| 模板 | 默认级别 | Phase 0 | 多层 Review |
-|------|---------|---------|------------|
-| `code` | L1/L2 | L2 时 | L2 时 |
-| `bugfix` | L2 | ✓ | ✓ |
-| `refactor` | L2 | ✓ | ✓ |
-| `test` | L1 | ✗ | ✗ |
-| `review` | L1 | ✗ | ✗ |
-| `optimize` | L2 | ✓ | ✓ |
-| `architect` | L3 | ✓ (核心) | ✓ |
+9 个模板：`code` `bugfix` `refactor` `test` `review` `audit` `optimize` `architect` `research`
 
 调用：`/crossfire <模板>: <描述>` | `/crossfire L2: <描述>`
 
-可选标志：`--no-debate`（跳过 Phase 0）| `--no-audit`（跳过 Codex 终审）
+可选标志：`--no-debate` | `--no-audit` | `--inject-plan <dir>`
 
 详见 [references/templates-and-faq.md](references/templates-and-faq.md)
 
@@ -124,9 +119,20 @@ codex exec --dangerously-bypass-approvals-and-sandbox -m gpt-5.3-codex -C "<dir>
 
 ## 关键约束
 
-- **模型** — 强制 `gpt-5.3-codex`（`~/.codex/config.toml` 配置 `model_reasoning_effort = "xhigh"`）
-- **Windows 路径** — `-C` 参数用正斜杠或引号
-- **Windows 大文件** — 单次 Codex >300 行触发错误码 206，用两步法（详见 templates-and-faq.md）
+- **模型** — 强制 `gpt-5.4`（`~/.codex/config.toml` 配置 `model_reasoning_effort = "xhigh"`）
 - **并发** — 同一时间只运行一个 Codex 实例
 - **蓝图纪律** — Phase 1/2 不得静默偏离锁定蓝图
 - **升级机制** — 辩论/审查达 3 轮上限或僵局时，必须升级给用户
+- **临时文件** — 使用项目级 `.crossfire/` 目录（需 .gitignore 排除），Phase 3 完成后清理
+- **外部依赖** — Phase 0 委托的 `planning-with-files`、`brainstorming`、`writing-plans` 来自 superpowers 插件（已测试 v4.3.1+）
+
+### Windows 防护层（强制执行）
+
+所有 Codex 调用必须执行以下预处理，详见 [references/templates-and-faq.md](references/templates-and-faq.md)「Windows 防护层」：
+
+| 防护层 | 规则 | 影响阶段 |
+|--------|------|---------|
+| 路径归一化 | 所有路径转正斜杠，`-C` 参数和 prompt 内文件引用均适用 | 全部 |
+| `cd` 注入 | 每个 Codex prompt 第一行固定为 `cd <归一化绝对路径>` | 全部 |
+| 蓝图内嵌 | 蓝图 ≤200 行时直接嵌入 prompt，>200 行时指示 Codex 读文件（减少 prompt 膨胀） | Phase 1 |
+| 产出完整性兜底 | Codex 产出文件缺失或截断（超时/网络/异常）时，Claude 用 Write 完整覆盖 | Phase 1 |
